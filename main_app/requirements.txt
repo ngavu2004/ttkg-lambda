@@ -1,0 +1,8 @@
+requests
+langchain
+langchain-experimental
+langchain-core
+langchain-text-splitters
+langchain-openai
+python-dotenv
+boto3

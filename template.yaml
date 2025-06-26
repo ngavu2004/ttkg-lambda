@@ -1,0 +1,76 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  text-to-kg
+
+  SAM Template for text-to-kg
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+# Globals:
+#   Function:
+    # Timeout: 30
+
+Resources:
+  HealchCheckFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: main_app/
+      Handler: healthcheck.health_check
+      Runtime: python3.11
+      Timeout: 30
+      Architectures:
+        - x86_64
+      Events:
+        HealthCheck:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /health_check
+            Method: get
+  KnowledgeGraphAPI:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: main_app/
+      Handler: app.lambda_handler
+      Runtime: python3.11
+      Timeout: 900
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          SECRET_NAME: "openai/api-key"
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - "secretsmanager:GetSecretValue"
+              Resource: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:openai/api-key-*"
+      Layers:
+      - !Ref DependenciesLayer
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /get_knowledge_graph
+            Method: post
+  DependenciesLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: python-dependencies
+      Description: Layer with pre-installed dependencies
+      ContentUri: ./layer/
+      CompatibleRuntimes:
+        - python3.11
+
+Outputs:
+  # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
+  # Find out more about other implicit resources you can reference within SAM
+  # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
+  HealthCheckdApi:
+    Description: "API Gateway endpoint URL for Prod stage for HealthCheck function"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/health_check/"
+  KnowledgeGraphApi:
+    Description: "API Gateway endpoint URL for Prod stage for KnowledgeGraph function"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/get_knowledge_graph/"
+  
