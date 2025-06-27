@@ -14,7 +14,7 @@ Resources:
   HealchCheckFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
-      CodeUri: main_app/
+      CodeUri: main_app/healthcheck/
       Handler: healthcheck.health_check
       Runtime: python3.11
       Timeout: 30
@@ -29,7 +29,7 @@ Resources:
   KnowledgeGraphAPI:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: main_app/
+      CodeUri: main_app/create_kg/
       Handler: app.lambda_handler
       Runtime: python3.11
       Timeout: 900
