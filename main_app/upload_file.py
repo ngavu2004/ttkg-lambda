@@ -7,7 +7,6 @@ import os
 from datetime import datetime
 import PyPDF2
 from io import BytesIO
-import docx
 
 s3_client = boto3.client('s3')
 BUCKET_NAME = os.environ['BUCKET_NAME']
@@ -24,12 +23,6 @@ def extract_text_from_file(file_content, content_type, file_name):
             text = ""
             for page in pdf_reader.pages:
                 text += page.extract_text() + "\n"
-            return text.strip()
-        
-        elif file_name.endswith('.docx'):
-            doc_file = BytesIO(file_content)
-            doc = docx.Document(doc_file)
-            text = "\n".join([paragraph.text for paragraph in doc.paragraphs])
             return text.strip()
         
         else:

@@ -29,7 +29,7 @@ Resources:
       CodeUri: main_app/
       Handler: upload_file.lambda_handler
       Runtime: python3.11
-      Timeout: 30
+      Timeout: 900
       Environment:
         Variables:
           BUCKET_NAME: !Ref FileUploadBucket
@@ -38,6 +38,8 @@ Resources:
             BucketName: !Ref FileUploadBucket
         - S3ReadPolicy:
             BucketName: !Ref FileUploadBucket
+      Layers:
+      - !Ref UploadDependenciesLayer
       Events:
         UploadFile:
           Type: Api
@@ -104,7 +106,7 @@ Resources:
     Properties:
       LayerName: upload-dependencies
       Description: Layer for file parsing (PDF, Word, etc.)
-      ContentUri: ./uploadfile_layer/
+      ContentUri: ./upload_layer/
       CompatibleRuntimes:
         - python3.11
 
