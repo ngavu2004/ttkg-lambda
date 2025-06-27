@@ -27,7 +27,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: main_app/
-      Handler: file_upload.lambda_handler
+      Handler: upload_file.lambda_handler
       Runtime: python3.11
       Timeout: 30
       Environment:
@@ -82,19 +82,29 @@ Resources:
                 - "secretsmanager:GetSecretValue"
               Resource: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:openai/api-key-*"
       Layers:
-      - !Ref DependenciesLayer
+      - !Ref ProcessingDependenciesLayer
       Events:
         ApiEvent:
           Type: Api
           Properties:
             Path: /get_knowledge_graph
             Method: post
-  DependenciesLayer:
+
+  ProcessingDependenciesLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
       LayerName: python-dependencies
       Description: Layer with pre-installed dependencies
-      ContentUri: ./layer/
+      ContentUri: ./ml_layer/
+      CompatibleRuntimes:
+        - python3.11
+  
+  UploadDependenciesLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: upload-dependencies
+      Description: Layer for file parsing (PDF, Word, etc.)
+      ContentUri: ./uploadfile_layer/
       CompatibleRuntimes:
         - python3.11
 
