@@ -47,6 +47,28 @@ Resources:
             Path: /upload_file
             Method: post
 
+  PresignedURLFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: main_app/
+      Handler: presigned_url.handler
+      Runtime: python3.11
+      Timeout: 30
+      Environment:
+        Variables:
+          BUCKET_NAME: !Ref FileUploadBucket
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref FileUploadBucket
+        - S3WritePolicy:
+            BucketName: !Ref FileUploadBucket
+      Events:
+        PresignedURL:
+          Type: Api
+          Properties:
+            Path: /get_presigned_url
+            Method: get
+
   HealchCheckFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
