@@ -6,9 +6,12 @@ Description: >
   SAM Template for text-to-kg
 
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
-# Globals:
-#   Function:
-    # Timeout: 30
+Globals:
+  Api:
+    Cors:
+        AllowMethods: "'GET,POST,OPTIONS'"
+        AllowHeaders: "'content-type'"
+        AllowOrigin: "'*'"
 
 Resources:
   # S3 Bucket for file uploads
@@ -23,34 +26,34 @@ Resources:
             AllowedOrigins: ['*']
   
   # Add this resource
-  ApiKey:
-    Type: AWS::ApiGateway::ApiKey
-    Properties:
-      Name: !Sub "${AWS::StackName}-api-key"
-      Description: "API Key for frontend access"
-      Enabled: true
+  # ApiKey:
+  #   Type: AWS::ApiGateway::ApiKey
+  #   Properties:
+  #     Name: !Sub "${AWS::StackName}-api-key"
+  #     Description: "API Key for frontend access"
+  #     Enabled: true
 
-  UsagePlan:
-    Type: AWS::ApiGateway::UsagePlan
-    Properties:
-      UsagePlanName: !Sub "${AWS::StackName}-usage-plan"
-      Description: "Usage plan for frontend"
-      Throttle:
-        RateLimit: 100
-        BurstLimit: 200
-      Quota:
-        Limit: 10000
-        Period: DAY
-      ApiStages:
-        - ApiId: !Ref ServerlessRestApi
-          Stage: Prod
+  # UsagePlan:
+  #   Type: AWS::ApiGateway::UsagePlan
+  #   Properties:
+  #     UsagePlanName: !Sub "${AWS::StackName}-usage-plan"
+  #     Description: "Usage plan for frontend"
+  #     Throttle:
+  #       RateLimit: 100
+  #       BurstLimit: 200
+  #     Quota:
+  #       Limit: 10000
+  #       Period: DAY
+  #     ApiStages:
+  #       - ApiId: !Ref ServerlessRestApi
+  #         Stage: Prod
 
-  UsagePlanKey:
-    Type: AWS::ApiGateway::UsagePlanKey
-    Properties:
-      KeyId: !Ref ApiKey
-      KeyType: API_KEY
-      UsagePlanId: !Ref UsagePlan
+  # UsagePlanKey:
+  #   Type: AWS::ApiGateway::UsagePlanKey
+  #   Properties:
+  #     KeyId: !Ref ApiKey
+  #     KeyType: API_KEY
+  #     UsagePlanId: !Ref UsagePlan
 
 
   GraphCacheTable:
@@ -118,11 +121,20 @@ Resources:
         GenerateLink:
           Type: Api
           Properties:
+            # RestApiId: !Ref ServerlessRestApi
             Path: /generate-share-link
             Method: post
-            Auth:
-              ApiKeyRequired: true
-  
+            # Auth:
+            #   ApiKeyRequired: true
+        # GenerateLinkOptions:
+        #   Type: Api
+        #   Properties:
+        #     RestApiId: !Ref ServerlessRestApi
+        #     Path: /generate-share-link
+        #     Method: options
+        #     Auth:
+        #       ApiKeyRequired: false
+
   ViewSharedGraphFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -142,8 +154,34 @@ Resources:
           Properties:
             Path: /view-graph/{share_id}
             Method: get
-            Auth:
-              ApiKeyRequired: true
+            # Auth:
+            #   ApiKeyRequired: true
+        # ViewGraphOptions:
+        #   Type: Api
+        #   Properties:
+        #     Path: /view-graph/{share_id}
+        #     Method: options
+        #     Auth:
+        #       ApiKeyRequired: false
+  GetSavedGraphFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: share_link/
+      Handler: get_saved_graph.handler
+      Runtime: python3.11
+      Timeout: 30
+      Environment:
+        Variables:
+          GRAPH_CACHE_TABLE: !Ref GraphCacheTable
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref GraphCacheTable
+      Events:
+        GetGraph:
+          Type: Api
+          Properties:
+            Path: /get_saved_graph/{file_id}
+            Method: get
 
   PresignedURLFunction:
     Type: AWS::Serverless::Function
@@ -166,8 +204,15 @@ Resources:
           Properties:
             Path: /get_presigned_url
             Method: get
-            Auth:
-              ApiKeyRequired: true
+            # Auth:
+            #   ApiKeyRequired: true
+        # PresignedUrlOptions:
+        #   Type: Api
+        #   Properties:
+        #     Path: /get_presigned_url
+        #     Method: options
+        #     Auth:
+        #       ApiKeyRequired: false
 
   HealchCheckFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
@@ -181,12 +226,20 @@ Resources:
       
       Events:
         HealthCheck:
-          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Type: Api
           Properties:
+            # RestApiId: !Ref ServerlessRestApi
             Path: /health_check
             Method: get
-            Auth:
-              ApiKeyRequired: true
+        #     Auth:
+        #       ApiKeyRequired: true
+        # HealthCheckOptions:
+        #   Type: Api
+        #   Properties:
+        #     RestApiId: !Ref ServerlessRestApi
+        #     Path: /health_check
+        #     Method: options
+        
 
   KnowledgeGraphAPI:
     Type: AWS::Serverless::Function
@@ -216,8 +269,8 @@ Resources:
           Properties:
             Path: /get_knowledge_graph
             Method: post
-            Auth:
-              ApiKeyRequired: true
+            # Auth:
+            #   ApiKeyRequired: true
 
   ProcessingDependenciesLayer:
     Type: AWS::Serverless::LayerVersion
@@ -247,14 +300,14 @@ Outputs:
   KnowledgeGraphApi:
     Description: "API Gateway endpoint URL for Prod stage for KnowledgeGraph function"
     Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/get_knowledge_graph/"
-  ApiKey:
-    Description: "API Key for accessing protected endpoints"
-    Value: !Ref ApiKey
-    Export:
-      Name: !Sub "${AWS::StackName}-ApiKey"
-  ApiBaseUrl:
-    Description: "Base URL for the API"
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod"
-    Export:
-      Name: !Sub "${AWS::StackName}-ApiBaseUrl"
+  # ApiKey:
+  #   Description: "API Key for accessing protected endpoints"
+  #   Value: !Ref ApiKey
+  #   Export:
+  #     Name: !Sub "${AWS::StackName}-ApiKey"
+  # ApiBaseUrl:
+  #   Description: "Base URL for the API"
+  #   Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod"
+  #   Export:
+  #     Name: !Sub "${AWS::StackName}-ApiBaseUrl"
   

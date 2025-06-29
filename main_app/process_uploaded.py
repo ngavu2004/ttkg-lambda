@@ -2,9 +2,11 @@ import json
 import boto3
 import os
 import PyPDF2
+import uuid
 
 s3 = boto3.client('s3')
 lambda_client = boto3.client('lambda')
+dynamodb = boto3.resource('dynamodb')
 BUCKET_NAME = os.environ['BUCKET_NAME']
 
 def extract_text_from_pdf(file_path):
@@ -71,14 +73,19 @@ def handler(event, context):
         # Convert the dictionary to JSON string before uploading
         graph_json_string = json.dumps(graph_json, indent=2)
 
-        # # Upload output
-        # s3.put_object(
-        #     Bucket=bucket,
-        #     Key=output_key,
-        #     Body=graph_json_string,  # Now it's a string, not a dict
-        #     ContentType='application/json'
-        # )
-        # print(f"Uploaded knowledge graph JSON to: {output_key}")
+        # save json to dynamodb
+        table = dynamodb.Table(os.environ['GRAPH_CACHE_TABLE'])
+
+        table.put_item(
+            Item={
+                'file_id': file_id,
+                'graph_data': graph_json,
+                'created_at': int(context.timestamp),
+                'expires_at': int((context.timestamp + 30 * 24 * 60 * 60)),  # 30 days expiration
+                'view_count': 0
+            }
+        )
+
     return {
         'statusCode': 200,
         'body': graph_json_string

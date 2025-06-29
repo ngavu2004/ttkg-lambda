@@ -31,17 +31,32 @@ def handler(event, context):
         # Set expiration (e.g., 30 days from now)
         expires_at = int((datetime.now() + timedelta(days=30)).timestamp())
         
-        # Store in DynamoDB
-        table.put_item(
-            Item={
-                'share_id': share_id,
-                'file_id': file_id,
-                'graph_data': graph_data,
-                'created_at': datetime.now().isoformat(),
-                'expires_at': expires_at,
-                'view_count': 0
-            }
-        )
+        # Store in DynamoDB 
+        # if a graph with the same file_id already exists, update it
+        existing_item = table.get_item(Key={'file_id': file_id})
+        if 'Item' in existing_item:
+            # Update existing item
+            table.update_item(
+                Key={'file_id': file_id},
+                UpdateExpression='SET graph_data = :data, expires_at = :expires, share_id = :share_id',
+                ExpressionAttributeValues={
+                    ':data': graph_data,
+                    ':expires': expires_at,
+                    ':share_id': share_id
+                }
+            )
+        else:
+            # Create new item
+            table.put_item(
+                Item={
+                    'share_id': share_id,
+                    'file_id': file_id,
+                    'graph_data': graph_data,
+                    'created_at': datetime.now().isoformat(),
+                    'expires_at': expires_at,
+                    'view_count': 0
+                }
+            )
         
         # Generate shareable URL
         # Build API Gateway URL dynamically from the event context
