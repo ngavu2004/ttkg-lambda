@@ -7,21 +7,19 @@ https://{api-id}.execute-api.{region}.amazonaws.com/Prod
 
 ## Authentication
 
-**API Key Required**: All endpoints require an API key for access.
+**No Authentication Required**: All endpoints are currently publicly accessible.
 
 **Headers Required:**
 ```
-X-Api-Key: your-api-key-here
 Content-Type: application/json
 ```
 
-**Example Request with API Key:**
+**Example Request:**
 ```javascript
 const response = await fetch('/get_knowledge_graph', {
   method: 'POST',
   headers: {
-    'Content-Type': 'application/json',
-    'X-Api-Key': 'your-api-key-here'
+    'Content-Type': 'application/json'
   },
   body: JSON.stringify({
     text: "Your text content here..."
@@ -37,11 +35,6 @@ const response = await fetch('/get_knowledge_graph', {
 **GET** `/health_check`
 
 Check if the API is running.
-
-**Headers:**
-```
-X-Api-Key: your-api-key-here
-```
 
 **Response:**
 ```json
@@ -61,7 +54,6 @@ Extract knowledge graph from provided text using AI.
 **Headers:**
 ```
 Content-Type: application/json
-X-Api-Key: your-api-key-here
 ```
 
 **Request Body:**
@@ -108,13 +100,10 @@ X-Api-Key: your-api-key-here
 
 **Example Request:**
 ```javascript
-const API_KEY = 'your-api-key-here';
-
 const response = await fetch('/get_knowledge_graph', {
   method: 'POST',
   headers: {
-    'Content-Type': 'application/json',
-    'X-Api-Key': API_KEY
+    'Content-Type': 'application/json'
   },
   body: JSON.stringify({
     text: "John Doe works at Microsoft as a software engineer. He graduated from Stanford University."
@@ -133,11 +122,6 @@ console.log('Edges:', data.edges);
 
 Get a presigned URL to upload files directly to S3.
 
-**Headers:**
-```
-X-Api-Key: your-api-key-here
-```
-
 **Query Parameters:**
 - `file_name` (optional): Name of the file
 - `content_type` (optional): MIME type of the file (default: application/octet-stream)
@@ -145,7 +129,7 @@ X-Api-Key: your-api-key-here
 **Response:**
 ```json
 {
-  "presigned_url": "https://bucket.s3.amazonaws.com/uploads/uuid/filename.pdf?signature=...",
+  "upload_url": "https://bucket.s3.amazonaws.com/uploads/uuid/filename.pdf?signature=...",
   "file_name": "document.pdf",
   "file_id": "12345678-1234-1234-1234-123456789abc"
 }
@@ -153,17 +137,11 @@ X-Api-Key: your-api-key-here
 
 **Example Request:**
 ```javascript
-const API_KEY = 'your-api-key-here';
-
-const response = await fetch('/get_presigned_url?file_name=resume.pdf&content_type=application/pdf', {
-  headers: {
-    'X-Api-Key': API_KEY
-  }
-});
+const response = await fetch('/get_presigned_url?file_name=resume.pdf&content_type=application/pdf');
 const data = await response.json();
 
-// Use the presigned URL to upload file (no API key needed for S3 upload)
-const uploadResponse = await fetch(data.presigned_url, {
+// Use the presigned URL to upload file
+const uploadResponse = await fetch(data.upload_url, {
   method: 'PUT',
   body: fileBlob,
   headers: {
@@ -174,7 +152,74 @@ const uploadResponse = await fetch(data.presigned_url, {
 
 ---
 
-### 4. Generate Shareable Link
+### 4. Get Saved Graph by File ID
+**GET** `/get_saved_graph/{file_id}`
+
+Retrieve the processed knowledge graph for an uploaded file.
+
+**Path Parameters:**
+- `file_id`: The unique identifier returned from the presigned URL request
+
+**Response (Processing):**
+```json
+{
+  "status": "processing",
+  "message": "File is being processed. Please try again in a few moments."
+}
+```
+
+**Response (Completed):**
+```json
+{
+  "status": "completed",
+  "graph_data": {
+    "nodes": [
+      {
+        "id": "John Doe",
+        "type": "Person",
+        "properties": {}
+      }
+    ],
+    "edges": [
+      {
+        "source": "John Doe",
+        "target": "Microsoft",
+        "type": "WORKS_AT"
+      }
+    ]
+  },
+  "file_id": "12345678-1234-1234-1234-123456789abc",
+  "processed_at": "2025-06-29T10:30:00Z"
+}
+```
+
+**Response (Error):**
+```json
+{
+  "status": "error",
+  "error": "File processing failed: unsupported file type"
+}
+```
+
+**Example Request:**
+```javascript
+const fileId = "12345678-1234-1234-1234-123456789abc";
+
+const response = await fetch(`/get_saved_graph/${fileId}`);
+const result = await response.json();
+
+if (result.status === "completed") {
+  console.log('Graph data:', result.graph_data);
+} else if (result.status === "processing") {
+  console.log('Still processing, try again later');
+} else {
+  console.error('Processing failed:', result.error);
+}
+```
+
+---
+
+### 5. Generate Shareable Link
 **POST** `/generate-share-link`
 
 Create a shareable link for a knowledge graph.
@@ -182,7 +227,6 @@ Create a shareable link for a knowledge graph.
 **Headers:**
 ```
 Content-Type: application/json
-X-Api-Key: your-api-key-here
 ```
 
 **Request Body:**
@@ -219,13 +263,10 @@ X-Api-Key: your-api-key-here
 
 **Example Request:**
 ```javascript
-const API_KEY = 'your-api-key-here';
-
 const response = await fetch('/generate-share-link', {
   method: 'POST',
   headers: {
-    'Content-Type': 'application/json',
-    'X-Api-Key': API_KEY
+    'Content-Type': 'application/json'
   },
   body: JSON.stringify({
     file_id: "file-uuid-here",
@@ -247,15 +288,10 @@ console.log("Share URL:", shareData.share_url);
 
 ---
 
-### 5. View Shared Graph
+### 6. View Shared Graph
 **GET** `/view-graph/{share_id}`
 
 Retrieve a shared knowledge graph using its share ID.
-
-**Headers:**
-```
-X-Api-Key: your-api-key-here
-```
 
 **Path Parameters:**
 - `share_id`: The unique identifier for the shared graph
@@ -287,14 +323,9 @@ X-Api-Key: your-api-key-here
 
 **Example Request:**
 ```javascript
-const API_KEY = 'your-api-key-here';
 const shareId = "87654321-4321-4321-4321-abcdef123456";
 
-const response = await fetch(`/view-graph/${shareId}`, {
-  headers: {
-    'X-Api-Key': API_KEY
-  }
-});
+const response = await fetch(`/view-graph/${shareId}`);
 const sharedGraph = await response.json();
 console.log('Graph nodes:', sharedGraph.graph_data.nodes);
 console.log('Graph edges:', sharedGraph.graph_data.edges);
@@ -307,9 +338,8 @@ console.log('Graph edges:', sharedGraph.graph_data.edges);
 ### API Client Setup
 ```javascript
 class TTKGApiClient {
-  constructor(baseUrl, apiKey) {
+  constructor(baseUrl) {
     this.baseUrl = baseUrl;
-    this.apiKey = apiKey;
   }
 
   async makeRequest(endpoint, options = {}) {
@@ -317,7 +347,6 @@ class TTKGApiClient {
     const defaultOptions = {
       headers: {
         'Content-Type': 'application/json',
-        'X-Api-Key': this.apiKey,
         ...options.headers
       }
     };
@@ -335,8 +364,7 @@ class TTKGApiClient {
 
 // Initialize client
 const API_BASE_URL = 'https://your-api-id.execute-api.us-east-1.amazonaws.com/Prod';
-const API_KEY = 'your-api-key-here';
-const client = new TTKGApiClient(API_BASE_URL, API_KEY);
+const client = new TTKGApiClient(API_BASE_URL);
 ```
 
 ### 1. Text-to-Graph Workflow
@@ -372,8 +400,10 @@ async function uploadAndProcessFile(file) {
       `/get_presigned_url?file_name=${encodeURIComponent(file.name)}&content_type=${encodeURIComponent(file.type)}`
     );
     
-    // Step 2: Upload file to S3 (no API key needed for this step)
-    const uploadResponse = await fetch(urlData.presigned_url, {
+    console.log('File ID:', urlData.file_id);
+    
+    // Step 2: Upload file to S3
+    const uploadResponse = await fetch(urlData.upload_url, {
       method: 'PUT',
       body: file,
       headers: { 'Content-Type': file.type }
@@ -383,53 +413,127 @@ async function uploadAndProcessFile(file) {
       throw new Error('File upload failed');
     }
     
+    console.log('File uploaded successfully, processing started...');
+    
+    // Step 3: Poll for processing completion
+    const graphData = await pollForProcessingCompletion(urlData.file_id);
+    
     return {
       file_id: urlData.file_id,
-      message: 'File uploaded successfully. Processing will begin automatically.'
+      graph_data: graphData
     };
     
   } catch (error) {
-    console.error('Error uploading file:', error);
+    console.error('Error in file workflow:', error);
     throw error;
   }
+}
+
+async function pollForProcessingCompletion(fileId, maxAttempts = 30, intervalMs = 2000) {
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      console.log(`Checking processing status (attempt ${attempt}/${maxAttempts})...`);
+      
+      const response = await fetch(`${client.baseUrl}/get_saved_graph/${fileId}`);
+      
+      if (response.status === 200) {
+        // Success - graph data is ready
+        const result = await response.json();
+        console.log('Processing completed successfully!');
+        console.log('Graph contains:', result.graph_data.nodes?.length || 0, 'nodes and', result.graph_data.edges?.length || 0, 'edges');
+        return result.graph_data;
+      } else if (response.status === 404) {
+        // File not found or not processed yet
+        console.log('File not ready yet, waiting...');
+        
+        // Wait before next attempt
+        if (attempt < maxAttempts) {
+          await new Promise(resolve => setTimeout(resolve, intervalMs));
+        }
+      } else if (response.status === 500) {
+        // Server error - might be temporary
+        const errorResult = await response.json();
+        console.log(`Server error (attempt ${attempt}): ${errorResult.error}`);
+        
+        if (attempt < maxAttempts) {
+          // Wait longer for server errors
+          await new Promise(resolve => setTimeout(resolve, intervalMs * 2));
+        } else {
+          throw new Error(`Processing failed with server error: ${errorResult.error}`);
+        }
+      } else {
+        // Other HTTP errors - usually not recoverable
+        const errorResult = await response.json();
+        throw new Error(`HTTP ${response.status}: ${errorResult.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      if (error.name === 'TypeError' && attempt < maxAttempts) {
+        // Network error - retry
+        console.log(`Network error (attempt ${attempt}): ${error.message}, retrying...`);
+        await new Promise(resolve => setTimeout(resolve, intervalMs));
+        continue;
+      }
+      
+      if (attempt === maxAttempts) {
+        throw new Error(`Polling failed after ${maxAttempts} attempts: ${error.message}`);
+      }
+      
+      throw error; // Re-throw non-network errors immediately
+    }
+  }
+  
+  throw new Error(`Processing timeout: file did not complete processing after ${maxAttempts} attempts`);
 }
 
 // Usage
-const result = await uploadAndProcessFile(fileInput.files[0]);
-```
-
-### 3. Share Graph Workflow
-```javascript
-async function shareGraph(fileId, graphData) {
+// Usage with enhanced error handling
+async function handleFileUpload(fileInput) {
+  const file = fileInput.files[0];
+  if (!file) {
+    alert('Please select a file');
+    return;
+  }
+  
   try {
-    // Ensure graphData has the correct format with nodes and edges
-    const shareData = await client.makeRequest('/generate-share-link', {
-      method: 'POST',
-      body: JSON.stringify({
-        file_id: fileId,
-        graph_data: {
-          nodes: graphData.nodes,  // Array of node objects
-          edges: graphData.edges   // Array of edge objects
-        }
-      })
-    });
+    console.log('Starting file upload and processing...');
     
-    return shareData.share_url;
+    // Show loading indicator
+    const loadingElement = document.getElementById('loading');
+    if (loadingElement) loadingElement.style.display = 'block';
+    
+    const result = await uploadAndProcessFile(file);
+    
+    console.log('File processed successfully!');
+    console.log('File ID:', result.file_id);
+    console.log('Graph data:', result.graph_data);
+    
+    // Hide loading indicator
+    if (loadingElement) loadingElement.style.display = 'none';
+    
+    // Display results
+    displayGraphData(result.graph_data);
+    
+    return result;
   } catch (error) {
-    console.error('Error creating share link:', error);
-    throw error;
+    console.error('File processing failed:', error);
+    
+    // Hide loading indicator
+    const loadingElement = document.getElementById('loading');
+    if (loadingElement) loadingElement.style.display = 'none';
+    
+    // Show user-friendly error message
+    let userMessage = 'File processing failed. ';
+    if (error.message.includes('timeout')) {
+      userMessage += 'The file is taking longer than expected to process. Please try again later.';
+    } else if (error.message.includes('Network')) {
+      userMessage += 'Please check your internet connection and try again.';
+    } else {
+      userMessage += error.message;
+    }
+    
+    alert(userMessage);
   }
 }
-
-// Usage with correct schema
-const shareUrl = await shareGraph("file-id", {
-  nodes: [
-    { "id": "John Doe", "type": "Person", "properties": {} }
-  ],
-  edges: [
-    { "source": "John Doe", "target": "Microsoft", "type": "WORKS_AT" }
-  ]
-});
 ```
 
 ### 4. View Shared Graph Workflow
@@ -449,6 +553,37 @@ async function viewSharedGraph(shareId) {
 
 // Usage
 const sharedGraph = await viewSharedGraph("share-id-here");
+```
+
+### 5. Complete File-to-Share Workflow
+```javascript
+async function completeFileWorkflow(file) {
+  try {
+    // 1. Upload and process file
+    console.log('Step 1: Uploading and processing file...');
+    const fileResult = await uploadAndProcessFile(file);
+    
+    // 2. Create shareable link
+    console.log('Step 2: Creating share link...');
+    const shareUrl = await shareGraph(fileResult.file_id, fileResult.graph_data);
+    
+    // 3. Return complete result
+    return {
+      file_id: fileResult.file_id,
+      graph_data: fileResult.graph_data,
+      share_url: shareUrl,
+      message: 'File processed and share link created successfully!'
+    };
+    
+  } catch (error) {
+    console.error('Complete workflow failed:', error);
+    throw error;
+  }
+}
+
+// Usage
+const result = await completeFileWorkflow(selectedFile);
+console.log('Workflow completed:', result);
 ```
 
 ---
@@ -503,23 +638,31 @@ const sharedGraph = await viewSharedGraph("share-id-here");
 
 ---
 
+## File Processing Status
+
+When uploading files, the processing follows these stages:
+
+### Status Types:
+1. **`processing`** - File is being analyzed and knowledge graph is being extracted
+2. **`completed`** - Processing finished successfully, graph data available
+3. **`error`** - Processing failed, error message provided
+
+### Polling Strategy:
+- **Initial wait**: 2-5 seconds after upload before first poll
+- **Poll interval**: Every 2-3 seconds
+- **Timeout**: Stop polling after 60 seconds (30 attempts)
+- **Exponential backoff**: Consider increasing intervals for longer files
+
+### Processing Time Estimates:
+- **Small text files** (< 1MB): 5-15 seconds
+- **PDF documents** (1-10MB): 15-60 seconds  
+- **Large documents** (> 10MB): 1-3 minutes
+
+---
+
 ## Error Responses
 
 All endpoints may return these common error responses:
-
-**401 Unauthorized (Missing or Invalid API Key)**
-```json
-{
-  "message": "Unauthorized"
-}
-```
-
-**403 Forbidden (API Key Valid but Access Denied)**
-```json
-{
-  "message": "Forbidden"
-}
-```
 
 **400 Bad Request**
 ```json
@@ -542,6 +685,14 @@ All endpoints may return these common error responses:
 }
 ```
 
+**File Processing Errors**
+```json
+{
+  "status": "error",
+  "error": "Unsupported file type. Please upload PDF, TXT, or DOCX files."
+}
+```
+
 ---
 
 ## CORS Headers
@@ -549,120 +700,66 @@ All endpoints may return these common error responses:
 All endpoints include CORS headers:
 ```
 Access-Control-Allow-Origin: *
-Access-Control-Allow-Headers: Content-Type, X-Api-Key
+Access-Control-Allow-Headers: content-type
 Access-Control-Allow-Methods: GET, POST, OPTIONS
 ```
 
 ---
 
-## Rate Limits
+## Supported File Types
 
-The API includes rate limiting through usage plans:
+The API currently supports:
+- **PDF files** (.pdf)
+- **Text files** (.txt) 
+- **Word documents** (.docx) - *planned*
 
-- **Rate Limit**: 100 requests per second
-- **Burst Limit**: 200 requests
-- **Daily Quota**: 10,000 requests per day
-
-When rate limits are exceeded, you'll receive a `429 Too Many Requests` response.
-
----
-
-## Security Best Practices
-
-### 1. API Key Storage
-```javascript
-// ❌ Don't hardcode API keys in frontend code
-const API_KEY = 'your-api-key-here';
-
-// ✅ Use environment variables
-const API_KEY = process.env.REACT_APP_TTKG_API_KEY;
-
-// ✅ Or fetch from secure storage
-const API_KEY = await getApiKeyFromSecureStorage();
-```
-
-### 2. Error Handling
-```javascript
-async function makeSecureRequest(endpoint, options = {}) {
-  try {
-    const response = await client.makeRequest(endpoint, options);
-    return response;
-  } catch (error) {
-    if (error.message.includes('401') || error.message.includes('403')) {
-      // Handle authentication errors
-      console.error('Authentication failed. Please check your API key.');
-      // Redirect to login or refresh API key
-    }
-    throw error;
-  }
-}
-```
-
-### 3. API Key Validation
-```javascript
-function validateApiKey(apiKey) {
-  if (!apiKey || apiKey.length < 20) {
-    throw new Error('Invalid API key format');
-  }
-  return true;
-}
-```
-
----
-
-## Getting Your API Key
-
-After deploying the application, retrieve your API key:
-
-```bash
-# Get API key from CloudFormation outputs
-aws cloudformation describe-stacks \
-  --stack-name text-to-kg \
-  --query 'Stacks[0].Outputs[?OutputKey==`ApiKey`].OutputValue' \
-  --output text
-
-# Get API base URL
-aws cloudformation describe-stacks \
-  --stack-name text-to-kg \
-  --query 'Stacks[0].Outputs[?OutputKey==`ApiBaseUrl`].OutputValue' \
-  --output text
-```
+**File Size Limits:**
+- Maximum file size: 50MB
+- Maximum text length after extraction: 100,000 characters
 
 ---
 
 ## Notes
 
-1. **File Processing**: After uploading a file, processing happens automatically. The knowledge graph will be saved to S3 at `uploads/{file_id}/knowledge_graph.json`
+1. **File Processing**: After uploading a file, use the returned `file_id` to poll the `/get_saved_graph/{file_id}` endpoint until processing completes
 
-2. **Share Link Expiration**: Share links expire after 30 days by default
+2. **Polling Best Practice**: Wait 2-3 seconds between polling attempts to avoid overwhelming the API
 
-3. **Supported File Types**: Currently supports PDF files for automatic processing
+3. **Share Link Expiration**: Share links expire after 30 days by default
 
-4. **Maximum Text Length**: Large texts are automatically chunked (2000 characters with 200 character overlap)
+4. **No Authentication**: Currently all endpoints are publicly accessible
 
-5. **Authentication**: **API key required for all endpoints** - ensure your frontend securely stores and transmits the API key
+5. **Maximum Text Length**: Large texts are automatically chunked (2000 characters with 200 character overlap)
 
-6. **CORS**: The API supports cross-origin requests from any domain, but requires a valid API key
+6. **CORS Support**: The API supports cross-origin requests from any domain
 
-7. **Rate Limiting**: Monitor your usage to stay within the daily quota limits
+7. **Graph Format**: The API returns `nodes` and `edges` (not `relationships`) in the format described in the Graph Schema section
 
-8. **Graph Format**: The API returns `nodes` and `edges` (not `relationships`) in the format described in the Graph Schema section
+8. **Processing Timeout**: If polling times out, the file may still be processing - try polling again later
+
+9. **Async Processing**: File processing happens asynchronously, so upload success doesn't guarantee processing success
 ```
 
-The key updates include:
-1. **Added API key authentication section** at the top
-2. **Updated all endpoint examples** to include `X-Api-Key` header
-3. **Corrected the graph schema** to use `nodes` and `edges` with proper object format
-4. **Added security best practices** for API key handling
-5. **Updated error responses** to include authentication errors
-6. **Added rate limiting information**
-7. **Updated CORS headers** to include `X-Api-Key`
-8. **Added instructions** for obtaining API keysThe key updates include:
-1. **Added API key authentication section** at the top
-2. **Updated all endpoint examples** to include `X-Api-Key` header
-3. **Corrected the graph schema** to use `nodes` and `edges` with proper object format
-4. **Added security best practices** for API key handling
-5. **Updated error responses** to include authentication errors
-6. **Added rate limiting information**
-7. **Updated CORS headers** to include `X-Api-Key`
-8. **Added instructions** for obtaining API keys
+## Key Changes Made:
+
+1. **Removed API Key Authentication** - Updated all sections to reflect that no authentication is currently required
+2. **Updated File Upload Workflow** - Now shows the complete workflow with polling using `file_id`
+3. **Added Get Saved Graph Endpoint** - Documented the `/get_saved_graph/{file_id}` endpoint with all possible responses
+4. **Enhanced Polling Examples** - Provided comprehensive polling logic with error handling, timeouts, and retry strategies
+5. **Added Processing Status Section** - Detailed explanation of processing stages and timing expectations
+6. **Updated Workflow Examples** - Complete end-to-end examples showing file upload → poll → share link creation
+7. **Corrected Response Format** - Fixed the presigned URL response to show `upload_url` instead of `presigned_url`
+8. **Added File Processing Guidelines** - Information about supported file types, size limits, and processing times
+
+The README now accurately reflects your current API setup without authentication and shows the proper workflow for file uploads with polling! 🎉## Key Changes Made:
+
+1. **Removed API Key Authentication** - Updated all sections to reflect that no authentication is currently required
+2. **Updated File Upload Workflow** - Now shows the complete workflow with polling using `file_id`
+3. **Added Get Saved Graph Endpoint** - Documented the `/get_saved_graph/{file_id}` endpoint with all possible responses
+4. **Enhanced Polling Examples** - Provided comprehensive polling logic with error handling, timeouts, and retry strategies
+5. **Added Processing Status Section** - Detailed explanation of processing stages and timing expectations
+6. **Updated Workflow Examples** - Complete end-to-end examples showing file upload → poll → share link creation
+7. **Corrected Response Format** - Fixed the presigned URL response to show `upload_url` instead of `presigned_url`
+8. **Added File Processing Guidelines** - Information about supported file types, size limits, and processing times
+
+The README now accurately reflects your current API setup without authentication and shows the proper workflow for file uploads with polling! 🎉
