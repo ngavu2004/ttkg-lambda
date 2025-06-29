@@ -91,6 +91,11 @@ def lambda_handler(event, context):
         if not text:
             return {
                 "statusCode": 400,
+                "headers": {
+                    "Access-Control-Allow-Origin": "*",
+                    "Access-Control-Allow-Headers": "Content-Type, X-Api-Key",
+                    "Access-Control-Allow-Methods": "POST, OPTIONS"
+                },
                 "body": json.dumps({"error": "No text provided"})
             }
 
@@ -98,6 +103,11 @@ def lambda_handler(event, context):
 
         return {
             "statusCode": 200,
+            "headers": {
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Headers": "Content-Type, X-Api-Key",
+                "Access-Control-Allow-Methods": "POST, OPTIONS"
+            },
             "body": json.dumps({
                 "nodes": nodes,
                 "relationships": relationships
@@ -106,5 +116,10 @@ def lambda_handler(event, context):
     except Exception as e:
         return {
             "statusCode": 500,
+            "headers": {
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Headers": "Content-Type, X-Api-Key",
+                "Access-Control-Allow-Methods": "POST, OPTIONS"
+            },
             "body": json.dumps({"error": str(e)})
         }

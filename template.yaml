@@ -21,7 +21,38 @@ Resources:
           - AllowedHeaders: ['*']
             AllowedMethods: [GET, PUT, POST, DELETE, HEAD]
             AllowedOrigins: ['*']
-  # Add this to your template.yaml
+  
+  # Add this resource
+  ApiKey:
+    Type: AWS::ApiGateway::ApiKey
+    Properties:
+      Name: !Sub "${AWS::StackName}-api-key"
+      Description: "API Key for frontend access"
+      Enabled: true
+
+  UsagePlan:
+    Type: AWS::ApiGateway::UsagePlan
+    Properties:
+      UsagePlanName: !Sub "${AWS::StackName}-usage-plan"
+      Description: "Usage plan for frontend"
+      Throttle:
+        RateLimit: 100
+        BurstLimit: 200
+      Quota:
+        Limit: 10000
+        Period: DAY
+      ApiStages:
+        - ApiId: !Ref ServerlessRestApi
+          Stage: Prod
+
+  UsagePlanKey:
+    Type: AWS::ApiGateway::UsagePlanKey
+    Properties:
+      KeyId: !Ref ApiKey
+      KeyType: API_KEY
+      UsagePlanId: !Ref UsagePlan
+
+
   GraphCacheTable:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -69,19 +100,6 @@ Resources:
           FunctionName: !Ref KnowledgeGraphAPI
       Layers:
       - !Ref UploadDependenciesLayer
-      # Events:
-      #   S3Upload:
-      #     Type: S3
-      #     Properties:
-      #       Bucket: !Ref FileUploadBucket
-      #       Events: s3:ObjectCreated:*
-      #       Filter:
-      #         S3Key:
-      #           Rules:
-      #             - Name: prefix
-      #               Value: uploads/
-      #             - Name: suffix
-      #               Value: .pdf
   
   GenerateShareLinkFunction:
     Type: AWS::Serverless::Function
@@ -102,6 +120,8 @@ Resources:
           Properties:
             Path: /generate-share-link
             Method: post
+            Auth:
+              ApiKeyRequired: true
   
   ViewSharedGraphFunction:
     Type: AWS::Serverless::Function
@@ -122,6 +142,8 @@ Resources:
           Properties:
             Path: /view-graph/{share_id}
             Method: get
+            Auth:
+              ApiKeyRequired: true
 
   PresignedURLFunction:
     Type: AWS::Serverless::Function
@@ -144,6 +166,8 @@ Resources:
           Properties:
             Path: /get_presigned_url
             Method: get
+            Auth:
+              ApiKeyRequired: true
 
   HealchCheckFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
@@ -154,12 +178,15 @@ Resources:
       Timeout: 30
       Architectures:
         - x86_64
+      
       Events:
         HealthCheck:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
             Path: /health_check
             Method: get
+            Auth:
+              ApiKeyRequired: true
 
   KnowledgeGraphAPI:
     Type: AWS::Serverless::Function
@@ -189,6 +216,8 @@ Resources:
           Properties:
             Path: /get_knowledge_graph
             Method: post
+            Auth:
+              ApiKeyRequired: true
 
   ProcessingDependenciesLayer:
     Type: AWS::Serverless::LayerVersion
@@ -218,4 +247,14 @@ Outputs:
   KnowledgeGraphApi:
     Description: "API Gateway endpoint URL for Prod stage for KnowledgeGraph function"
     Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/get_knowledge_graph/"
+  ApiKey:
+    Description: "API Key for accessing protected endpoints"
+    Value: !Ref ApiKey
+    Export:
+      Name: !Sub "${AWS::StackName}-ApiKey"
+  ApiBaseUrl:
+    Description: "Base URL for the API"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod"
+    Export:
+      Name: !Sub "${AWS::StackName}-ApiBaseUrl"
   

@@ -27,6 +27,11 @@ def handler(event, context):
         
         return {
             "statusCode": 200,
+            "headers": {
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Headers": "Content-Type, X-Api-Key",
+                "Access-Control-Allow-Methods": "GET, OPTIONS"
+            },
             "body": json.dumps({
                 "presigned_url": presigned_url,
                 "file_name": file_name,
@@ -37,5 +42,10 @@ def handler(event, context):
         print(f"Error: {e}")
         return {
             "statusCode": 500,
+                "headers": {
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Headers": "Content-Type, X-Api-Key",
+                "Access-Control-Allow-Methods": "GET, OPTIONS"
+            },
             "body": {"error": str(e)}
         }
