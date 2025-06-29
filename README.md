@@ -5,12 +5,43 @@
 https://{api-id}.execute-api.{region}.amazonaws.com/Prod
 ```
 
+## Authentication
+
+**API Key Required**: All endpoints require an API key for access.
+
+**Headers Required:**
+```
+X-Api-Key: your-api-key-here
+Content-Type: application/json
+```
+
+**Example Request with API Key:**
+```javascript
+const response = await fetch('/get_knowledge_graph', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'X-Api-Key': 'your-api-key-here'
+  },
+  body: JSON.stringify({
+    text: "Your text content here..."
+  })
+});
+```
+
+---
+
 ## API Endpoints
 
 ### 1. Health Check
 **GET** `/health_check`
 
 Check if the API is running.
+
+**Headers:**
+```
+X-Api-Key: your-api-key-here
+```
 
 **Response:**
 ```json
@@ -27,6 +58,12 @@ Check if the API is running.
 
 Extract knowledge graph from provided text using AI.
 
+**Headers:**
+```
+Content-Type: application/json
+X-Api-Key: your-api-key-here
+```
+
 **Request Body:**
 ```json
 {
@@ -38,23 +75,46 @@ Extract knowledge graph from provided text using AI.
 ```json
 {
   "nodes": [
-    ["Entity Name", "Entity Type"],
-    ["John Doe", "Person"],
-    ["Microsoft", "Organization"]
+    {
+      "id": "John Doe",
+      "type": "John Doe",
+      "properties": {}
+    },
+    {
+      "id": "Microsoft",
+      "type": "Microsoft",
+      "properties": {}
+    },
+    {
+      "id": "Software Engineer",
+      "type": "Software Engineer",
+      "properties": {}
+    }
   ],
-  "relationships": [
-    ["Source Entity", "Target Entity", "Relationship Type"],
-    ["John Doe", "Microsoft", "WORKS_AT"]
+  "edges": [
+    {
+      "source": "John Doe",
+      "target": "Microsoft",
+      "type": "WORKS_AT"
+    },
+    {
+      "source": "John Doe",
+      "target": "Software Engineer",
+      "type": "HAS_ROLE"
+    }
   ]
 }
 ```
 
 **Example Request:**
 ```javascript
+const API_KEY = 'your-api-key-here';
+
 const response = await fetch('/get_knowledge_graph', {
   method: 'POST',
   headers: {
-    'Content-Type': 'application/json'
+    'Content-Type': 'application/json',
+    'X-Api-Key': API_KEY
   },
   body: JSON.stringify({
     text: "John Doe works at Microsoft as a software engineer. He graduated from Stanford University."
@@ -62,7 +122,8 @@ const response = await fetch('/get_knowledge_graph', {
 });
 
 const data = await response.json();
-console.log(data);
+console.log('Nodes:', data.nodes);
+console.log('Edges:', data.edges);
 ```
 
 ---
@@ -71,6 +132,11 @@ console.log(data);
 **GET** `/get_presigned_url`
 
 Get a presigned URL to upload files directly to S3.
+
+**Headers:**
+```
+X-Api-Key: your-api-key-here
+```
 
 **Query Parameters:**
 - `file_name` (optional): Name of the file
@@ -87,10 +153,16 @@ Get a presigned URL to upload files directly to S3.
 
 **Example Request:**
 ```javascript
-const response = await fetch('/get_presigned_url?file_name=resume.pdf&content_type=application/pdf');
+const API_KEY = 'your-api-key-here';
+
+const response = await fetch('/get_presigned_url?file_name=resume.pdf&content_type=application/pdf', {
+  headers: {
+    'X-Api-Key': API_KEY
+  }
+});
 const data = await response.json();
 
-// Use the presigned URL to upload file
+// Use the presigned URL to upload file (no API key needed for S3 upload)
 const uploadResponse = await fetch(data.presigned_url, {
   method: 'PUT',
   body: fileBlob,
@@ -107,13 +179,31 @@ const uploadResponse = await fetch(data.presigned_url, {
 
 Create a shareable link for a knowledge graph.
 
+**Headers:**
+```
+Content-Type: application/json
+X-Api-Key: your-api-key-here
+```
+
 **Request Body:**
 ```json
 {
   "file_id": "12345678-1234-1234-1234-123456789abc",
   "graph_data": {
-    "nodes": [["Entity", "Type"]],
-    "relationships": [["Source", "Target", "Relation"]]
+    "nodes": [
+      {
+        "id": "John Doe",
+        "type": "Person",
+        "properties": {}
+      }
+    ],
+    "edges": [
+      {
+        "source": "John Doe",
+        "target": "Microsoft",
+        "type": "WORKS_AT"
+      }
+    ]
   }
 }
 ```
@@ -129,16 +219,24 @@ Create a shareable link for a knowledge graph.
 
 **Example Request:**
 ```javascript
+const API_KEY = 'your-api-key-here';
+
 const response = await fetch('/generate-share-link', {
   method: 'POST',
   headers: {
-    'Content-Type': 'application/json'
+    'Content-Type': 'application/json',
+    'X-Api-Key': API_KEY
   },
   body: JSON.stringify({
     file_id: "file-uuid-here",
     graph_data: {
-      nodes: [["John Doe", "Person"], ["Microsoft", "Company"]],
-      relationships: [["John Doe", "Microsoft", "WORKS_AT"]]
+      nodes: [
+        { "id": "John Doe", "type": "Person", "properties": {} },
+        { "id": "Microsoft", "type": "Company", "properties": {} }
+      ],
+      edges: [
+        { "source": "John Doe", "target": "Microsoft", "type": "WORKS_AT" }
+      ]
     }
   })
 });
@@ -154,6 +252,11 @@ console.log("Share URL:", shareData.share_url);
 
 Retrieve a shared knowledge graph using its share ID.
 
+**Headers:**
+```
+X-Api-Key: your-api-key-here
+```
+
 **Path Parameters:**
 - `share_id`: The unique identifier for the shared graph
 
@@ -161,8 +264,20 @@ Retrieve a shared knowledge graph using its share ID.
 ```json
 {
   "graph_data": {
-    "nodes": [["Entity", "Type"]],
-    "relationships": [["Source", "Target", "Relation"]]
+    "nodes": [
+      {
+        "id": "John Doe",
+        "type": "Person",
+        "properties": {}
+      }
+    ],
+    "edges": [
+      {
+        "source": "John Doe",
+        "target": "Microsoft",
+        "type": "WORKS_AT"
+      }
+    ]
   },
   "file_id": "12345678-1234-1234-1234-123456789abc",
   "created_at": "2025-06-29T10:30:00Z",
@@ -172,181 +287,7 @@ Retrieve a shared knowledge graph using its share ID.
 
 **Example Request:**
 ```javascript
+const API_KEY = 'your-api-key-here';
 const shareId = "87654321-4321-4321-4321-abcdef123456";
-const response = await fetch(`/view-graph/${shareId}`);
-const sharedGraph = await response.json();
-console.log(sharedGraph.graph_data);
-```
 
----
-
-## Complete Workflow Examples
-
-### 1. Text-to-Graph Workflow
-```javascript
-async function generateGraphFromText(text) {
-  try {
-    const response = await fetch('/get_knowledge_graph', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text })
-    });
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    
-    const graphData = await response.json();
-    return graphData;
-  } catch (error) {
-    console.error('Error generating graph:', error);
-    throw error;
-  }
-}
-
-// Usage
-const graph = await generateGraphFromText("Your text here...");
-```
-
-### 2. File Upload and Processing Workflow
-```javascript
-async function uploadAndProcessFile(file) {
-  try {
-    // Step 1: Get presigned URL
-    const urlResponse = await fetch(`/get_presigned_url?file_name=${file.name}&content_type=${file.type}`);
-    const urlData = await urlResponse.json();
-    
-    // Step 2: Upload file to S3
-    const uploadResponse = await fetch(urlData.presigned_url, {
-      method: 'PUT',
-      body: file,
-      headers: { 'Content-Type': file.type }
-    });
-    
-    if (!uploadResponse.ok) {
-      throw new Error('File upload failed');
-    }
-    
-    // Step 3: File will be automatically processed
-    // You can poll or wait for processing completion
-    return {
-      file_id: urlData.file_id,
-      message: 'File uploaded successfully. Processing will begin automatically.'
-    };
-    
-  } catch (error) {
-    console.error('Error uploading file:', error);
-    throw error;
-  }
-}
-
-// Usage
-const result = await uploadAndProcessFile(fileInput.files[0]);
-```
-
-### 3. Share Graph Workflow
-```javascript
-async function shareGraph(fileId, graphData) {
-  try {
-    const response = await fetch('/generate-share-link', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        file_id: fileId,
-        graph_data: graphData
-      })
-    });
-    
-    const shareData = await response.json();
-    return shareData.share_url;
-  } catch (error) {
-    console.error('Error creating share link:', error);
-    throw error;
-  }
-}
-
-// Usage
-const shareUrl = await shareGraph("file-id", graphData);
-```
-
-### 4. View Shared Graph Workflow
-```javascript
-async function viewSharedGraph(shareId) {
-  try {
-    const response = await fetch(`/view-graph/${shareId}`);
-    
-    if (response.status === 404) {
-      throw new Error('Graph not found or expired');
-    }
-    
-    const sharedData = await response.json();
-    return sharedData;
-  } catch (error) {
-    console.error('Error viewing shared graph:', error);
-    throw error;
-  }
-}
-
-// Usage
-const sharedGraph = await viewSharedGraph("share-id-here");
-```
-
----
-
-## Error Responses
-
-All endpoints may return these common error responses:
-
-**400 Bad Request**
-```json
-{
-  "error": "Missing required parameter: text"
-}
-```
-
-**404 Not Found**
-```json
-{
-  "error": "Graph not found or expired"
-}
-```
-
-**500 Internal Server Error**
-```json
-{
-  "error": "Internal server error message"
-}
-```
-
----
-
-## CORS Headers
-
-All endpoints include CORS headers:
-```
-Access-Control-Allow-Origin: *
-Access-Control-Allow-Headers: Content-Type
-Access-Control-Allow-Methods: GET, POST, OPTIONS
-```
-
----
-
-## Rate Limits
-
-- Text-to-graph API: Limited by Lambda concurrency and OpenAI API limits
-- File uploads: Standard S3 limits apply
-- Share links: No specific rate limits
-
----
-
-## Notes
-
-1. **File Processing**: After uploading a file, processing happens automatically. The knowledge graph will be saved to S3 at `uploads/{file_id}/knowledge_graph.json`
-
-2. **Share Link Expiration**: Share links expire after 30 days by default
-
-3. **Supported File Types**: Currently supports PDF files for automatic processing
-
-4. **Maximum Text Length**: Large texts are automatically chunked (2000 characters with 200 character overlap)
-
-5. **Authentication**: Currently no authentication required (adjust based on your security needs)
+const response = await fetch(`/view-graph/${

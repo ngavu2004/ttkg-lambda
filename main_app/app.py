@@ -66,8 +66,8 @@ async def extract_kg_from_text(text):
         all_relationships.extend(relationships)
 
     # Deduplicate nodes and relationships
-    all_nodes = [(n.id, n.type) for n in all_nodes]
-    all_relationships = [(r.source.id, r.target.id, r.type) for r in all_relationships]
+    all_nodes = [{"id": n.id, "type": n.id, "properties": n.properties} for i,n in enumerate(all_nodes)]
+    all_relationships = [{"source": r.source.id, "target": r.target.id, "relation": r.type} for r in all_relationships]
 
     return all_nodes, all_relationships
 
@@ -110,7 +110,7 @@ def lambda_handler(event, context):
             },
             "body": json.dumps({
                 "nodes": nodes,
-                "relationships": relationships
+                "edges": relationships
             })
         }
     except Exception as e:
