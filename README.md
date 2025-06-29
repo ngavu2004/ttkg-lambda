@@ -1,130 +1,352 @@
-# text-to-kg
+# Text-to-Knowledge Graph API Documentation
 
-This project contains source code and supporting files for a serverless application that you can deploy with the SAM CLI. It includes the following files and folders.
-
-- hello_world - Code for the application's Lambda function.
-- events - Invocation events that you can use to invoke the function.
-- tests - Unit tests for the application code. 
-- template.yaml - A template that defines the application's AWS resources.
-
-The application uses several AWS resources, including Lambda functions and an API Gateway API. These resources are defined in the `template.yaml` file in this project. You can update the template to add AWS resources through the same deployment process that updates your application code.
-
-If you prefer to use an integrated development environment (IDE) to build and test your application, you can use the AWS Toolkit.  
-The AWS Toolkit is an open source plug-in for popular IDEs that uses the SAM CLI to build and deploy serverless applications on AWS. The AWS Toolkit also adds a simplified step-through debugging experience for Lambda function code. See the following links to get started.
-
-* [CLion](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
-* [GoLand](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
-* [IntelliJ](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
-* [WebStorm](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
-* [Rider](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
-* [PhpStorm](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
-* [PyCharm](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
-* [RubyMine](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
-* [DataGrip](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
-* [VS Code](https://docs.aws.amazon.com/toolkit-for-vscode/latest/userguide/welcome.html)
-* [Visual Studio](https://docs.aws.amazon.com/toolkit-for-visual-studio/latest/user-guide/welcome.html)
-
-## Deploy the sample application
-
-The Serverless Application Model Command Line Interface (SAM CLI) is an extension of the AWS CLI that adds functionality for building and testing Lambda applications. It uses Docker to run your functions in an Amazon Linux environment that matches Lambda. It can also emulate your application's build environment and API.
-
-To use the SAM CLI, you need the following tools.
-
-* SAM CLI - [Install the SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html)
-* [Python 3 installed](https://www.python.org/downloads/)
-* Docker - [Install Docker community edition](https://hub.docker.com/search/?type=edition&offering=community)
-
-To build and deploy your application for the first time, run the following in your shell:
-
-```bash
-sam build --use-container
-sam deploy --guided
+## Base URL
+```
+https://{api-id}.execute-api.{region}.amazonaws.com/Prod
 ```
 
-The first command will build the source of your application. The second command will package and deploy your application to AWS, with a series of prompts:
+## API Endpoints
 
-* **Stack Name**: The name of the stack to deploy to CloudFormation. This should be unique to your account and region, and a good starting point would be something matching your project name.
-* **AWS Region**: The AWS region you want to deploy your app to.
-* **Confirm changes before deploy**: If set to yes, any change sets will be shown to you before execution for manual review. If set to no, the AWS SAM CLI will automatically deploy application changes.
-* **Allow SAM CLI IAM role creation**: Many AWS SAM templates, including this example, create AWS IAM roles required for the AWS Lambda function(s) included to access AWS services. By default, these are scoped down to minimum required permissions. To deploy an AWS CloudFormation stack which creates or modifies IAM roles, the `CAPABILITY_IAM` value for `capabilities` must be provided. If permission isn't provided through this prompt, to deploy this example you must explicitly pass `--capabilities CAPABILITY_IAM` to the `sam deploy` command.
-* **Save arguments to samconfig.toml**: If set to yes, your choices will be saved to a configuration file inside the project, so that in the future you can just re-run `sam deploy` without parameters to deploy changes to your application.
+### 1. Health Check
+**GET** `/health_check`
 
-You can find your API Gateway Endpoint URL in the output values displayed after deployment.
+Check if the API is running.
 
-## Use the SAM CLI to build and test locally
-
-Build your application with the `sam build --use-container` command.
-
-```bash
-text-to-kg$ sam build --use-container
+**Response:**
+```json
+{
+  "message": "API is healthy",
+  "timestamp": "2025-06-29T10:30:00Z"
+}
 ```
 
-The SAM CLI installs dependencies defined in `hello_world/requirements.txt`, creates a deployment package, and saves it in the `.aws-sam/build` folder.
+---
 
-Test a single function by invoking it directly with a test event. An event is a JSON document that represents the input that the function receives from the event source. Test events are included in the `events` folder in this project.
+### 2. Generate Knowledge Graph from Text
+**POST** `/get_knowledge_graph`
 
-Run functions locally and invoke them with the `sam local invoke` command.
+Extract knowledge graph from provided text using AI.
 
-```bash
-text-to-kg$ sam local invoke HelloWorldFunction --event events/event.json
+**Request Body:**
+```json
+{
+  "text": "Your text content here..."
+}
 ```
 
-The SAM CLI can also emulate your application's API. Use the `sam local start-api` to run the API locally on port 3000.
-
-```bash
-text-to-kg$ sam local start-api
-text-to-kg$ curl http://localhost:3000/
+**Response:**
+```json
+{
+  "nodes": [
+    ["Entity Name", "Entity Type"],
+    ["John Doe", "Person"],
+    ["Microsoft", "Organization"]
+  ],
+  "relationships": [
+    ["Source Entity", "Target Entity", "Relationship Type"],
+    ["John Doe", "Microsoft", "WORKS_AT"]
+  ]
+}
 ```
 
-The SAM CLI reads the application template to determine the API's routes and the functions that they invoke. The `Events` property on each function's definition includes the route and method for each path.
+**Example Request:**
+```javascript
+const response = await fetch('/get_knowledge_graph', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    text: "John Doe works at Microsoft as a software engineer. He graduated from Stanford University."
+  })
+});
 
-```yaml
-      Events:
-        HelloWorld:
-          Type: Api
-          Properties:
-            Path: /hello
-            Method: get
+const data = await response.json();
+console.log(data);
 ```
 
-## Add a resource to your application
-The application template uses AWS Serverless Application Model (AWS SAM) to define application resources. AWS SAM is an extension of AWS CloudFormation with a simpler syntax for configuring common serverless application resources such as functions, triggers, and APIs. For resources not included in [the SAM specification](https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md), you can use standard [AWS CloudFormation](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-template-resource-type-ref.html) resource types.
+---
 
-## Fetch, tail, and filter Lambda function logs
+### 3. Get Presigned URL for File Upload
+**GET** `/get_presigned_url`
 
-To simplify troubleshooting, SAM CLI has a command called `sam logs`. `sam logs` lets you fetch logs generated by your deployed Lambda function from the command line. In addition to printing the logs on the terminal, this command has several nifty features to help you quickly find the bug.
+Get a presigned URL to upload files directly to S3.
 
-`NOTE`: This command works for all AWS Lambda functions; not just the ones you deploy using SAM.
+**Query Parameters:**
+- `file_name` (optional): Name of the file
+- `content_type` (optional): MIME type of the file (default: application/octet-stream)
 
-```bash
-text-to-kg$ sam logs -n HelloWorldFunction --stack-name "text-to-kg" --tail
+**Response:**
+```json
+{
+  "presigned_url": "https://bucket.s3.amazonaws.com/uploads/uuid/filename.pdf?signature=...",
+  "file_name": "document.pdf",
+  "file_id": "12345678-1234-1234-1234-123456789abc"
+}
 ```
 
-You can find more information and examples about filtering Lambda function logs in the [SAM CLI Documentation](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-logging.html).
+**Example Request:**
+```javascript
+const response = await fetch('/get_presigned_url?file_name=resume.pdf&content_type=application/pdf');
+const data = await response.json();
 
-## Tests
-
-Tests are defined in the `tests` folder in this project. Use PIP to install the test dependencies and run tests.
-
-```bash
-text-to-kg$ pip install -r tests/requirements.txt --user
-# unit test
-text-to-kg$ python -m pytest tests/unit -v
-# integration test, requiring deploying the stack first.
-# Create the env variable AWS_SAM_STACK_NAME with the name of the stack we are testing
-text-to-kg$ AWS_SAM_STACK_NAME="text-to-kg" python -m pytest tests/integration -v
+// Use the presigned URL to upload file
+const uploadResponse = await fetch(data.presigned_url, {
+  method: 'PUT',
+  body: fileBlob,
+  headers: {
+    'Content-Type': 'application/pdf'
+  }
+});
 ```
 
-## Cleanup
+---
 
-To delete the sample application that you created, use the AWS CLI. Assuming you used your project name for the stack name, you can run the following:
+### 4. Generate Shareable Link
+**POST** `/generate-share-link`
 
-```bash
-sam delete --stack-name "text-to-kg"
+Create a shareable link for a knowledge graph.
+
+**Request Body:**
+```json
+{
+  "file_id": "12345678-1234-1234-1234-123456789abc",
+  "graph_data": {
+    "nodes": [["Entity", "Type"]],
+    "relationships": [["Source", "Target", "Relation"]]
+  }
+}
 ```
 
-## Resources
+**Response:**
+```json
+{
+  "share_id": "87654321-4321-4321-4321-abcdef123456",
+  "share_url": "https://api.example.com/Prod/view-graph/87654321-4321-4321-4321-abcdef123456",
+  "expires_at": 1719820800
+}
+```
 
-See the [AWS SAM developer guide](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/what-is-sam.html) for an introduction to SAM specification, the SAM CLI, and serverless application concepts.
+**Example Request:**
+```javascript
+const response = await fetch('/generate-share-link', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    file_id: "file-uuid-here",
+    graph_data: {
+      nodes: [["John Doe", "Person"], ["Microsoft", "Company"]],
+      relationships: [["John Doe", "Microsoft", "WORKS_AT"]]
+    }
+  })
+});
 
-Next, you can use AWS Serverless Application Repository to deploy ready to use Apps that go beyond hello world samples and learn how authors developed their applications: [AWS Serverless Application Repository main page](https://aws.amazon.com/serverless/serverlessrepo/)
+const shareData = await response.json();
+console.log("Share URL:", shareData.share_url);
+```
+
+---
+
+### 5. View Shared Graph
+**GET** `/view-graph/{share_id}`
+
+Retrieve a shared knowledge graph using its share ID.
+
+**Path Parameters:**
+- `share_id`: The unique identifier for the shared graph
+
+**Response:**
+```json
+{
+  "graph_data": {
+    "nodes": [["Entity", "Type"]],
+    "relationships": [["Source", "Target", "Relation"]]
+  },
+  "file_id": "12345678-1234-1234-1234-123456789abc",
+  "created_at": "2025-06-29T10:30:00Z",
+  "view_count": 5
+}
+```
+
+**Example Request:**
+```javascript
+const shareId = "87654321-4321-4321-4321-abcdef123456";
+const response = await fetch(`/view-graph/${shareId}`);
+const sharedGraph = await response.json();
+console.log(sharedGraph.graph_data);
+```
+
+---
+
+## Complete Workflow Examples
+
+### 1. Text-to-Graph Workflow
+```javascript
+async function generateGraphFromText(text) {
+  try {
+    const response = await fetch('/get_knowledge_graph', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text })
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const graphData = await response.json();
+    return graphData;
+  } catch (error) {
+    console.error('Error generating graph:', error);
+    throw error;
+  }
+}
+
+// Usage
+const graph = await generateGraphFromText("Your text here...");
+```
+
+### 2. File Upload and Processing Workflow
+```javascript
+async function uploadAndProcessFile(file) {
+  try {
+    // Step 1: Get presigned URL
+    const urlResponse = await fetch(`/get_presigned_url?file_name=${file.name}&content_type=${file.type}`);
+    const urlData = await urlResponse.json();
+    
+    // Step 2: Upload file to S3
+    const uploadResponse = await fetch(urlData.presigned_url, {
+      method: 'PUT',
+      body: file,
+      headers: { 'Content-Type': file.type }
+    });
+    
+    if (!uploadResponse.ok) {
+      throw new Error('File upload failed');
+    }
+    
+    // Step 3: File will be automatically processed
+    // You can poll or wait for processing completion
+    return {
+      file_id: urlData.file_id,
+      message: 'File uploaded successfully. Processing will begin automatically.'
+    };
+    
+  } catch (error) {
+    console.error('Error uploading file:', error);
+    throw error;
+  }
+}
+
+// Usage
+const result = await uploadAndProcessFile(fileInput.files[0]);
+```
+
+### 3. Share Graph Workflow
+```javascript
+async function shareGraph(fileId, graphData) {
+  try {
+    const response = await fetch('/generate-share-link', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        file_id: fileId,
+        graph_data: graphData
+      })
+    });
+    
+    const shareData = await response.json();
+    return shareData.share_url;
+  } catch (error) {
+    console.error('Error creating share link:', error);
+    throw error;
+  }
+}
+
+// Usage
+const shareUrl = await shareGraph("file-id", graphData);
+```
+
+### 4. View Shared Graph Workflow
+```javascript
+async function viewSharedGraph(shareId) {
+  try {
+    const response = await fetch(`/view-graph/${shareId}`);
+    
+    if (response.status === 404) {
+      throw new Error('Graph not found or expired');
+    }
+    
+    const sharedData = await response.json();
+    return sharedData;
+  } catch (error) {
+    console.error('Error viewing shared graph:', error);
+    throw error;
+  }
+}
+
+// Usage
+const sharedGraph = await viewSharedGraph("share-id-here");
+```
+
+---
+
+## Error Responses
+
+All endpoints may return these common error responses:
+
+**400 Bad Request**
+```json
+{
+  "error": "Missing required parameter: text"
+}
+```
+
+**404 Not Found**
+```json
+{
+  "error": "Graph not found or expired"
+}
+```
+
+**500 Internal Server Error**
+```json
+{
+  "error": "Internal server error message"
+}
+```
+
+---
+
+## CORS Headers
+
+All endpoints include CORS headers:
+```
+Access-Control-Allow-Origin: *
+Access-Control-Allow-Headers: Content-Type
+Access-Control-Allow-Methods: GET, POST, OPTIONS
+```
+
+---
+
+## Rate Limits
+
+- Text-to-graph API: Limited by Lambda concurrency and OpenAI API limits
+- File uploads: Standard S3 limits apply
+- Share links: No specific rate limits
+
+---
+
+## Notes
+
+1. **File Processing**: After uploading a file, processing happens automatically. The knowledge graph will be saved to S3 at `uploads/{file_id}/knowledge_graph.json`
+
+2. **Share Link Expiration**: Share links expire after 30 days by default
+
+3. **Supported File Types**: Currently supports PDF files for automatic processing
+
+4. **Maximum Text Length**: Large texts are automatically chunked (2000 characters with 200 character overlap)
+
+5. **Authentication**: Currently no authentication required (adjust based on your security needs)
