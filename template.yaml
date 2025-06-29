@@ -102,6 +102,26 @@ Resources:
           Properties:
             Path: /generate-share-link
             Method: post
+  
+  ViewSharedGraphFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: share_link/
+      Handler: view_shared_graph.handler
+      Runtime: python3.11
+      Timeout: 30
+      Environment:
+        Variables:
+          GRAPH_CACHE_TABLE: !Ref GraphCacheTable
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref GraphCacheTable
+      Events:
+        ViewGraph:
+          Type: Api
+          Properties:
+            Path: /view-graph/{share_id}
+            Method: get
 
   PresignedURLFunction:
     Type: AWS::Serverless::Function
