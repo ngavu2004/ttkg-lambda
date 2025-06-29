@@ -290,4 +290,379 @@ X-Api-Key: your-api-key-here
 const API_KEY = 'your-api-key-here';
 const shareId = "87654321-4321-4321-4321-abcdef123456";
 
-const response = await fetch(`/view-graph/${
+const response = await fetch(`/view-graph/${shareId}`, {
+  headers: {
+    'X-Api-Key': API_KEY
+  }
+});
+const sharedGraph = await response.json();
+console.log('Graph nodes:', sharedGraph.graph_data.nodes);
+console.log('Graph edges:', sharedGraph.graph_data.edges);
+```
+
+---
+
+## Complete Workflow Examples
+
+### API Client Setup
+```javascript
+class TTKGApiClient {
+  constructor(baseUrl, apiKey) {
+    this.baseUrl = baseUrl;
+    this.apiKey = apiKey;
+  }
+
+  async makeRequest(endpoint, options = {}) {
+    const url = `${this.baseUrl}${endpoint}`;
+    const defaultOptions = {
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Api-Key': this.apiKey,
+        ...options.headers
+      }
+    };
+
+    const requestOptions = { ...defaultOptions, ...options };
+    const response = await fetch(url, requestOptions);
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return await response.json();
+  }
+}
+
+// Initialize client
+const API_BASE_URL = 'https://your-api-id.execute-api.us-east-1.amazonaws.com/Prod';
+const API_KEY = 'your-api-key-here';
+const client = new TTKGApiClient(API_BASE_URL, API_KEY);
+```
+
+### 1. Text-to-Graph Workflow
+```javascript
+async function generateGraphFromText(text) {
+  try {
+    const graphData = await client.makeRequest('/get_knowledge_graph', {
+      method: 'POST',
+      body: JSON.stringify({ text })
+    });
+    
+    // Process nodes and edges
+    console.log('Extracted nodes:', graphData.nodes);
+    console.log('Extracted edges:', graphData.edges);
+    
+    return graphData;
+  } catch (error) {
+    console.error('Error generating graph:', error);
+    throw error;
+  }
+}
+
+// Usage
+const graph = await generateGraphFromText("Your text here...");
+```
+
+### 2. File Upload and Processing Workflow
+```javascript
+async function uploadAndProcessFile(file) {
+  try {
+    // Step 1: Get presigned URL
+    const urlData = await client.makeRequest(
+      `/get_presigned_url?file_name=${encodeURIComponent(file.name)}&content_type=${encodeURIComponent(file.type)}`
+    );
+    
+    // Step 2: Upload file to S3 (no API key needed for this step)
+    const uploadResponse = await fetch(urlData.presigned_url, {
+      method: 'PUT',
+      body: file,
+      headers: { 'Content-Type': file.type }
+    });
+    
+    if (!uploadResponse.ok) {
+      throw new Error('File upload failed');
+    }
+    
+    return {
+      file_id: urlData.file_id,
+      message: 'File uploaded successfully. Processing will begin automatically.'
+    };
+    
+  } catch (error) {
+    console.error('Error uploading file:', error);
+    throw error;
+  }
+}
+
+// Usage
+const result = await uploadAndProcessFile(fileInput.files[0]);
+```
+
+### 3. Share Graph Workflow
+```javascript
+async function shareGraph(fileId, graphData) {
+  try {
+    // Ensure graphData has the correct format with nodes and edges
+    const shareData = await client.makeRequest('/generate-share-link', {
+      method: 'POST',
+      body: JSON.stringify({
+        file_id: fileId,
+        graph_data: {
+          nodes: graphData.nodes,  // Array of node objects
+          edges: graphData.edges   // Array of edge objects
+        }
+      })
+    });
+    
+    return shareData.share_url;
+  } catch (error) {
+    console.error('Error creating share link:', error);
+    throw error;
+  }
+}
+
+// Usage with correct schema
+const shareUrl = await shareGraph("file-id", {
+  nodes: [
+    { "id": "John Doe", "type": "Person", "properties": {} }
+  ],
+  edges: [
+    { "source": "John Doe", "target": "Microsoft", "type": "WORKS_AT" }
+  ]
+});
+```
+
+### 4. View Shared Graph Workflow
+```javascript
+async function viewSharedGraph(shareId) {
+  try {
+    const sharedData = await client.makeRequest(`/view-graph/${shareId}`);
+    return sharedData;
+  } catch (error) {
+    if (error.message.includes('404')) {
+      throw new Error('Graph not found or expired');
+    }
+    console.error('Error viewing shared graph:', error);
+    throw error;
+  }
+}
+
+// Usage
+const sharedGraph = await viewSharedGraph("share-id-here");
+```
+
+---
+
+## Graph Schema
+
+### Node Object
+```json
+{
+  "id": "string",        // Unique identifier for the node
+  "type": "string",      // Type/category of the node (often same as id)
+  "properties": {}       // Additional properties (currently empty object)
+}
+```
+
+### Edge Object  
+```json
+{
+  "source": "string",    // ID of the source node
+  "target": "string",    // ID of the target node  
+  "type": "string"       // Type of relationship (e.g., "WORKS_AT", "LOCATED_IN")
+}
+```
+
+### Complete Graph Data Structure
+```json
+{
+  "nodes": [
+    {
+      "id": "Entity Name",
+      "type": "Entity Type", 
+      "properties": {}
+    }
+  ],
+  "edges": [
+    {
+      "source": "Source Entity ID",
+      "target": "Target Entity ID",
+      "type": "RELATIONSHIP_TYPE"
+    }
+  ]
+}
+```
+
+**Common Relationship Types:**
+- `WORKS_AT` - Employment relationship
+- `LOCATED_IN` - Geographic relationship  
+- `STUDIED` - Educational relationship
+- `HAS_ROLE` - Role/position relationship
+- `GRADUATED_FROM` - Educational completion
+- `SPECIALIZES_IN` - Area of expertise
+
+---
+
+## Error Responses
+
+All endpoints may return these common error responses:
+
+**401 Unauthorized (Missing or Invalid API Key)**
+```json
+{
+  "message": "Unauthorized"
+}
+```
+
+**403 Forbidden (API Key Valid but Access Denied)**
+```json
+{
+  "message": "Forbidden"
+}
+```
+
+**400 Bad Request**
+```json
+{
+  "error": "Missing required parameter: text"
+}
+```
+
+**404 Not Found**
+```json
+{
+  "error": "Graph not found or expired"
+}
+```
+
+**500 Internal Server Error**
+```json
+{
+  "error": "Internal server error message"
+}
+```
+
+---
+
+## CORS Headers
+
+All endpoints include CORS headers:
+```
+Access-Control-Allow-Origin: *
+Access-Control-Allow-Headers: Content-Type, X-Api-Key
+Access-Control-Allow-Methods: GET, POST, OPTIONS
+```
+
+---
+
+## Rate Limits
+
+The API includes rate limiting through usage plans:
+
+- **Rate Limit**: 100 requests per second
+- **Burst Limit**: 200 requests
+- **Daily Quota**: 10,000 requests per day
+
+When rate limits are exceeded, you'll receive a `429 Too Many Requests` response.
+
+---
+
+## Security Best Practices
+
+### 1. API Key Storage
+```javascript
+// ❌ Don't hardcode API keys in frontend code
+const API_KEY = 'your-api-key-here';
+
+// ✅ Use environment variables
+const API_KEY = process.env.REACT_APP_TTKG_API_KEY;
+
+// ✅ Or fetch from secure storage
+const API_KEY = await getApiKeyFromSecureStorage();
+```
+
+### 2. Error Handling
+```javascript
+async function makeSecureRequest(endpoint, options = {}) {
+  try {
+    const response = await client.makeRequest(endpoint, options);
+    return response;
+  } catch (error) {
+    if (error.message.includes('401') || error.message.includes('403')) {
+      // Handle authentication errors
+      console.error('Authentication failed. Please check your API key.');
+      // Redirect to login or refresh API key
+    }
+    throw error;
+  }
+}
+```
+
+### 3. API Key Validation
+```javascript
+function validateApiKey(apiKey) {
+  if (!apiKey || apiKey.length < 20) {
+    throw new Error('Invalid API key format');
+  }
+  return true;
+}
+```
+
+---
+
+## Getting Your API Key
+
+After deploying the application, retrieve your API key:
+
+```bash
+# Get API key from CloudFormation outputs
+aws cloudformation describe-stacks \
+  --stack-name text-to-kg \
+  --query 'Stacks[0].Outputs[?OutputKey==`ApiKey`].OutputValue' \
+  --output text
+
+# Get API base URL
+aws cloudformation describe-stacks \
+  --stack-name text-to-kg \
+  --query 'Stacks[0].Outputs[?OutputKey==`ApiBaseUrl`].OutputValue' \
+  --output text
+```
+
+---
+
+## Notes
+
+1. **File Processing**: After uploading a file, processing happens automatically. The knowledge graph will be saved to S3 at `uploads/{file_id}/knowledge_graph.json`
+
+2. **Share Link Expiration**: Share links expire after 30 days by default
+
+3. **Supported File Types**: Currently supports PDF files for automatic processing
+
+4. **Maximum Text Length**: Large texts are automatically chunked (2000 characters with 200 character overlap)
+
+5. **Authentication**: **API key required for all endpoints** - ensure your frontend securely stores and transmits the API key
+
+6. **CORS**: The API supports cross-origin requests from any domain, but requires a valid API key
+
+7. **Rate Limiting**: Monitor your usage to stay within the daily quota limits
+
+8. **Graph Format**: The API returns `nodes` and `edges` (not `relationships`) in the format described in the Graph Schema section
+```
+
+The key updates include:
+1. **Added API key authentication section** at the top
+2. **Updated all endpoint examples** to include `X-Api-Key` header
+3. **Corrected the graph schema** to use `nodes` and `edges` with proper object format
+4. **Added security best practices** for API key handling
+5. **Updated error responses** to include authentication errors
+6. **Added rate limiting information**
+7. **Updated CORS headers** to include `X-Api-Key`
+8. **Added instructions** for obtaining API keysThe key updates include:
+1. **Added API key authentication section** at the top
+2. **Updated all endpoint examples** to include `X-Api-Key` header
+3. **Corrected the graph schema** to use `nodes` and `edges` with proper object format
+4. **Added security best practices** for API key handling
+5. **Updated error responses** to include authentication errors
+6. **Added rate limiting information**
+7. **Updated CORS headers** to include `X-Api-Key`
+8. **Added instructions** for obtaining API keys
