@@ -17,10 +17,14 @@ def handler(event, context):
     try:
         file_id = event['pathParameters']['file_id']
         
-        # Get from DynamoDB
-        response = table.get_item(Key={'file_id': file_id})
-        
-        if 'Item' not in response:
+        # Query using the Global Secondary Index (FileIdIndex) instead of get_item
+        response = table.query(
+            IndexName='FileIdIndex',
+            KeyConditionExpression='file_id = :file_id',
+            ExpressionAttributeValues={':file_id': file_id}
+        )
+
+        if not response['Items']:
             return {
                 "statusCode": 404,
                 "headers": {
@@ -28,21 +32,15 @@ def handler(event, context):
                 },
                 "body": json.dumps({"status": "Processing", "message": "Graph not found or being processed. Please try again in a few moments."})
             }
-        
-        item = response['Item']
-        
-        # Increment view count
-        table.update_item(
-            Key={'file_id': file_id},
-            UpdateExpression='ADD view_count :val',
-            ExpressionAttributeValues={':val': 1}
-        )
+
+        item = response['Items'][0]
         
         # Convert the response data, handling Decimals
         response_data = {
             "status": "completed",
             "graph_data": item['graph_data'],
             "file_id": item['file_id'],
+            "file_name": item.get('file_name', 'unknown'),
             "created_at": item['created_at'],
             "view_count": int(item.get('view_count', 0)) + 1  # Convert to int and add 1
         }

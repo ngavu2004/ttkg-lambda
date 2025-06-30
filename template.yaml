@@ -94,6 +94,7 @@ Resources:
         Variables:
           BUCKET_NAME: !Ref FileUploadBucket
           KG_FUNCTION_NAME: !Ref KnowledgeGraphAPI
+          GRAPH_CACHE_TABLE: !Ref GraphCacheTable
       Policies:
       - S3ReadPolicy:
           BucketName: !Ref FileUploadBucket
@@ -101,6 +102,8 @@ Resources:
           BucketName: !Ref FileUploadBucket
       - LambdaInvokePolicy:
           FunctionName: !Ref KnowledgeGraphAPI
+      - DynamoDBCrudPolicy:
+          TableName: !Ref GraphCacheTable
       Layers:
       - !Ref UploadDependenciesLayer
   

@@ -1,5 +1,76 @@
 # Text-to-Knowledge Graph API Documentation
 
+## Project Description
+
+The **Text-to-Knowledge Graph API** is a serverless AI-powered solution that automatically transforms unstructured text and documents into interactive knowledge graphs. By leveraging advanced natural language processing through OpenAI's GPT-4, this API extracts entities (people, organizations, concepts) and their relationships from any text input, making complex information instantly more comprehensible and actionable.
+
+**Key Features:**
+- 🧠 **AI-Powered Analysis**: Uses GPT-4 via LangChain to intelligently identify entities and relationships
+- 📄 **Multi-Format Support**: Processes direct text input and PDF document uploads
+- 🔗 **Shareable Results**: Generates public links for knowledge graphs with expiration controls
+- ⚡ **Serverless Architecture**: Built on AWS Lambda for automatic scaling and cost efficiency
+- 🌐 **Developer-Friendly**: RESTful API with comprehensive CORS support for easy integration
+
+**Use Cases:**
+- Research paper analysis and academic literature mapping
+- Business document processing and organizational knowledge extraction
+- Content analysis for blogs, articles, and reports
+- Educational material structuring and concept visualization
+- Legal document relationship mapping
+
+Transform your text into visual knowledge networks that reveal hidden connections and insights!
+
+## Overview of Lambda Functions Usecase
+The project uses **7 specialized Lambda functions** in a serverless microservices architecture, each handling specific tasks in the text-to-knowledge graph pipeline.
+
+### 1. **HealchCheckFunction**
+- **Input**: HTTP GET request
+- **Output**: JSON health status message
+- **Trigger**: API Gateway `/health_check` endpoint
+- **Purpose**: System health monitoring
+
+### 2. **KnowledgeGraphAPI** (Core AI Function)
+- **Input**: JSON with text content `{"text": "..."}`
+- **Output**: Knowledge graph with nodes and edges
+- **Trigger**: API Gateway `/get_knowledge_graph` POST request
+- **Purpose**: AI-powered text analysis using GPT-4 via LangChain
+
+### 3. **PresignedURLFunction**
+- **Input**: Query parameters (file_name, content_type)
+- **Output**: S3 presigned upload URL and file_id
+- **Trigger**: API Gateway `/get_presigned_url` GET request
+- **Purpose**: Generate secure S3 upload URLs
+
+### 4. **ProcessUploadedFunction** (File Processing Pipeline)
+- **Input**: S3 event when PDF uploaded
+- **Output**: Processed graph data stored in DynamoDB
+- **Trigger**: S3 bucket object creation event (automatic)
+- **Purpose**: Extract text from PDFs, invoke KnowledgeGraphAPI, save results
+
+### 5. **GetSavedGraphFunction** (Polling Endpoint)
+- **Input**: file_id path parameter
+- **Output**: Processing status and graph data (if ready)
+- **Trigger**: API Gateway `/get_saved_graph/{file_id}` GET request
+- **Purpose**: Allow clients to poll for file processing completion
+
+### 6. **GenerateShareLinkFunction**
+- **Input**: JSON with graph_data and optional file_id
+- **Output**: Shareable link with expiration
+- **Trigger**: API Gateway `/generate-share-link` POST request
+- **Purpose**: Create public shareable links for graphs
+
+### 7. **ViewSharedGraphFunction**
+- **Input**: share_id path parameter
+- **Output**: Shared graph data and metadata
+- **Trigger**: API Gateway `/view-graph/{share_id}` GET request
+- **Purpose**: Retrieve graphs via public share links
+
+## Key Architecture Features
+- **Event-Driven**: S3 uploads automatically trigger processing
+- **Lambda-to-Lambda**: ProcessUploadedFunction calls KnowledgeGraphAPI synchronously
+- **Stateless**: All state stored in DynamoDB and S3
+- **Scalable**: Each function scales independently based on demand
+
 ## Base URL
 ```
 https://{api-id}.execute-api.{region}.amazonaws.com/Prod

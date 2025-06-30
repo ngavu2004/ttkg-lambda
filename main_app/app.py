@@ -100,6 +100,9 @@ def lambda_handler(event, context):
             }
 
         nodes, relationships = asyncio.run(extract_kg_from_text(text))
+        print(f"Extracted {len(nodes)} nodes and {len(relationships)} relationships.")
+        print(f"Nodes: {nodes}")
+        print(f"Relationships: {relationships}")
 
         return {
             "statusCode": 200,
