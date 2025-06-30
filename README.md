@@ -160,11 +160,11 @@ Retrieve the processed knowledge graph for an uploaded file.
 **Path Parameters:**
 - `file_id`: The unique identifier returned from the presigned URL request
 
-**Response (Processing):**
+**Response (Processing - 404 Not Found):**
 ```json
 {
-  "status": "processing",
-  "message": "File is being processed. Please try again in a few moments."
+  "status": "Processing",
+  "message": "Graph not found or being processed. Please try again in a few moments."
 }
 ```
 
@@ -189,7 +189,8 @@ Retrieve the processed knowledge graph for an uploaded file.
     ]
   },
   "file_id": "12345678-1234-1234-1234-123456789abc",
-  "processed_at": "2025-06-29T10:30:00Z"
+  "created_at": "2025-06-29T10:30:00Z",
+  "view_count": 1
 }
 ```
 
@@ -197,7 +198,7 @@ Retrieve the processed knowledge graph for an uploaded file.
 ```json
 {
   "status": "error",
-  "error": "File processing failed: unsupported file type"
+  "error": "Detailed error message"
 }
 ```
 

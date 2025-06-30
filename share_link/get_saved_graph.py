@@ -26,7 +26,7 @@ def handler(event, context):
                 "headers": {
                     "Access-Control-Allow-Origin": "*"
                 },
-                "body": json.dumps({"error": "Graph not found or expired"})
+                "body": json.dumps({"status": "Processing", "message": "Graph not found or being processed. Please try again in a few moments."})
             }
         
         item = response['Item']
@@ -40,6 +40,7 @@ def handler(event, context):
         
         # Convert the response data, handling Decimals
         response_data = {
+            "status": "completed",
             "graph_data": item['graph_data'],
             "file_id": item['file_id'],
             "created_at": item['created_at'],
@@ -63,5 +64,5 @@ def handler(event, context):
             "headers": {
                 "Access-Control-Allow-Origin": "*"
             },
-            "body": json.dumps({"error": str(e)})
+            "body": json.dumps({"status": "error", "error": str(e)})
         }
