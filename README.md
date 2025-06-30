@@ -66,9 +66,10 @@ The project uses **7 specialized Lambda functions** in a serverless microservice
 - **Purpose**: Retrieve graphs via public share links
 
 ## Key Architecture Features
-Here's an ASCII architecture diagram for Text-to-Knowledge Graph API:
+Here's an ASCII architecture diagram for your Text-to-Knowledge Graph API:
 
-### Text-to-Knowledge Graph API Architecture
+```
+# Text-to-Knowledge Graph API Architecture
 
 ┌─────────────────────────────────────────────────────────────────────────────────────┐
 │                                    CLIENT LAYER                                    │
